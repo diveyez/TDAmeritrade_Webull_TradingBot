@@ -54,9 +54,9 @@ class StreamConn:
             """
             self.oncon_lock.acquire()
             if self.debug_flg:
-                print("Connected with result code "+str(rc))
+                print(f"Connected with result code {str(rc)}")
             if rc != 0:
-                raise ValueError("Connection Failed with rc:"+str(rc))
+                raise ValueError(f"Connection Failed with rc:{str(rc)}")
             self.oncon_lock.release()
 
         def on_order_message(client, userdata, msg):
@@ -68,7 +68,7 @@ class StreamConn:
             if self.debug_flg:
                 print(f'topic: {topic} ----- payload: {data}')
 
-            if not self.order_func is None:
+            if self.order_func is not None:
                 self.order_func(topic, data)
 
             self.onmsg_lock.release()
@@ -81,7 +81,7 @@ class StreamConn:
                 if self.debug_flg:
                     print(f'topic: {topic} ----- payload: {data}')
 
-                if not self.price_func is None:
+                if self.price_func is not None:
                     self.price_func(topic, data)
 
             except Exception as e:
@@ -113,63 +113,63 @@ class StreamConn:
 
 
     def connect(self, did, access_token=None):
-            if access_token is None:
-                say_hello = {"header":
-                                 {"did": did,
-                                  "hl": "en",
-                                  "app": "desktop",
-                                  "os": "web",
-                                  "osType": "windows"}
-                             }
-            else:
-                say_hello = {"header":
-                                 {"access_token": access_token,
-                                  "did": did,
-                                  "hl": "en",
-                                  "app": "desktop",
-                                  "os": "web",
-                                  "osType": "windows"}
-                             }
+        if access_token is None:
+            say_hello = {"header":
+                             {"did": did,
+                              "hl": "en",
+                              "app": "desktop",
+                              "os": "web",
+                              "osType": "windows"}
+                         }
+        else:
+            say_hello = {"header":
+                             {"access_token": access_token,
+                              "did": did,
+                              "hl": "en",
+                              "app": "desktop",
+                              "os": "web",
+                              "osType": "windows"}
+                         }
 
 
-            #Has to be done this way to have them live in a class and not require self as the first parameter
-            #in the callback functions
-            on_connect, on_subscribe, on_price_message, on_order_message, on_unsubscribe = self._setup_callbacks()
+        #Has to be done this way to have them live in a class and not require self as the first parameter
+        #in the callback functions
+        on_connect, on_subscribe, on_price_message, on_order_message, on_unsubscribe = self._setup_callbacks()
 
-            if not access_token is None:
-                # no need to listen to order updates if you don't have a access token
-                # paper trade order updates are not send down this socket, I believe they
-                # are polled every 30=60 seconds from the app
+        if access_token is not None:
+            # no need to listen to order updates if you don't have a access token
+            # paper trade order updates are not send down this socket, I believe they
+            # are polled every 30=60 seconds from the app
 
-                self.client_order_upd = mqtt.Client(did, transport='websockets')
-                self.client_order_upd.on_connect = on_connect
-                self.client_order_upd.on_subscribe = on_subscribe
-                self.client_order_upd.on_message = on_order_message
-                self.client_order_upd.tls_set_context()
-                # this is a default password that they use in the app
-                self.client_order_upd.username_pw_set('test', password='test')
-                self.client_order_upd.connect('platpush.webullbroker.com', 443, 30)
-                #time.sleep(5)
-                self.client_order_upd.loop_start()  # runs in a second thread
-                print('say hello')
-                self.client_order_upd.subscribe(json.dumps(say_hello))
-                #time.sleep(5)
-
-            self.client_streaming_quotes = mqtt.Client(client_id=did, transport='websockets')
-            self.client_streaming_quotes.on_connect = on_connect
-            self.client_streaming_quotes.on_subscribe = on_subscribe
-            self.client_streaming_quotes.on_unsubscribe = on_unsubscribe
-            self.client_streaming_quotes.on_message = on_price_message
-            self.client_streaming_quotes.tls_set_context()
-            #this is a default password that they use in the app
-            self.client_streaming_quotes.username_pw_set('test', password='test')
-            self.client_streaming_quotes.connect('wspush.webullbroker.com', 443, 30)
+            self.client_order_upd = mqtt.Client(did, transport='websockets')
+            self.client_order_upd.on_connect = on_connect
+            self.client_order_upd.on_subscribe = on_subscribe
+            self.client_order_upd.on_message = on_order_message
+            self.client_order_upd.tls_set_context()
+            # this is a default password that they use in the app
+            self.client_order_upd.username_pw_set('test', password='test')
+            self.client_order_upd.connect('platpush.webullbroker.com', 443, 30)
             #time.sleep(5)
-            self.client_streaming_quotes.loop()
-            #print('say hello')
-            self.client_streaming_quotes.subscribe(json.dumps(say_hello))
+            self.client_order_upd.loop_start()  # runs in a second thread
+            print('say hello')
+            self.client_order_upd.subscribe(json.dumps(say_hello))
             #time.sleep(5)
-            self.client_streaming_quotes.loop()
+
+        self.client_streaming_quotes = mqtt.Client(client_id=did, transport='websockets')
+        self.client_streaming_quotes.on_connect = on_connect
+        self.client_streaming_quotes.on_subscribe = on_subscribe
+        self.client_streaming_quotes.on_unsubscribe = on_unsubscribe
+        self.client_streaming_quotes.on_message = on_price_message
+        self.client_streaming_quotes.tls_set_context()
+        #this is a default password that they use in the app
+        self.client_streaming_quotes.username_pw_set('test', password='test')
+        self.client_streaming_quotes.connect('wspush.webullbroker.com', 443, 30)
+        #time.sleep(5)
+        self.client_streaming_quotes.loop()
+        #print('say hello')
+        self.client_streaming_quotes.subscribe(json.dumps(say_hello))
+        #time.sleep(5)
+        self.client_streaming_quotes.loop()
             #print('sub ticker')
 
 
