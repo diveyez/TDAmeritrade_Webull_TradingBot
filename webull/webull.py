@@ -168,9 +168,7 @@ class webull:
         headers = self.build_req_headers()
 
         response = requests.get(self._urls.user(), headers=headers)
-        result = response.json()
-
-        return result
+        return response.json()
 
 
     def get_account_id(self):
@@ -182,11 +180,7 @@ class webull:
 
         response = requests.get(self._urls.account_id(), headers=headers)
         result = response.json()
-        if result['success']:
-            id = str(result['data'][0]['secAccountId'])
-            return id
-        else:
-            return None
+        return str(result['data'][0]['secAccountId']) if result['success'] else None
 
 
     def get_account(self):
@@ -195,8 +189,7 @@ class webull:
         '''
         headers = self.build_req_headers()
         response = requests.get(self._urls.account(self._account_id), headers=headers)
-        result = response.json()
-        return result
+        return response.json()
 
 
     def get_positions(self):
@@ -212,10 +205,7 @@ class webull:
         output numbers of portfolio
         '''
         data = self.get_account()
-        output = {}
-        for item in data['accountMembers']:
-            output[item['key']] = item['value']
-        return output
+        return {item['key']: item['value'] for item in data['accountMembers']}
 
 
     def get_current_orders(self):
@@ -262,16 +252,14 @@ class webull:
         Lookup ticker_id
         '''
         ticker_id = 0
-        if stock and isinstance(stock, str):
-            response = requests.get(self._urls.stock_id(stock))
-            result = response.json()
-            if result.get('data'):
-                for item in result['data']: # implies multiple tickers, but only assigns last one?
-                    ticker_id = item['tickerId']
-            else:
-                raise ValueError('TickerId could not be found for stock {}'.format(stock))
-        else:
+        if not stock or not isinstance(stock, str):
             raise ValueError('Stock symbol is required')
+        response = requests.get(self._urls.stock_id(stock))
+        result = response.json()
+        if not result.get('data'):
+            raise ValueError('TickerId could not be found for stock {}'.format(stock))
+        for item in result['data']: # implies multiple tickers, but only assigns last one?
+            ticker_id = item['tickerId']
         return ticker_id
 
 
@@ -285,9 +273,9 @@ class webull:
         timeinforce:  GTC / DAY / IOC
         outsideRegularTradingHour: True / False
         '''
-        if not tId is None:
+        if tId is not None:
             pass
-        elif not stock is None:
+        elif stock is not None:
             tId = self.get_ticker(stock)
         else:
             raise ValueError('Must provide a stock symbol or a stock id')
@@ -432,7 +420,7 @@ class webull:
         response = requests.post(self._urls.cancel_otoco_orders(self._account_id), json=data, headers=headers)
         return response.json()
 
-    def get_quote(self, stock=None, tId=None) :
+    def get_quote(self, stock=None, tId=None):
         '''
         get price quote
         tId: ticker ID str
@@ -446,8 +434,7 @@ class webull:
             except ValueError as _e:
                 raise ValueError("Could not find ticker for stock {}".format(stock))
         response = requests.get(self._urls.quotes(tId))
-        result = response.json()
-        return result
+        return response.json()
 
     def get_option_quote(self, stock=None, tId=None, optionId=None):
         '''
@@ -707,15 +694,21 @@ class webull:
         jdict['attach'] = {'hkexPrivilege': 'true'}  #unknown meaning, was in network trace
 
         jdict['rules']['wlas.screener.rule.region'] = 'securities.region.name.6'
-        if not price_lte is None and not price_gte is None:
+        if price_lte is not None and price_gte is not None:
             # lte and gte are backwards
-            jdict['rules']['wlas.screener.rule.price'] = 'gte=' + str(price_lte) + '&lte=' + str(price_gte)
+            jdict['rules'][
+                'wlas.screener.rule.price'
+            ] = f'gte={str(price_lte)}&lte={str(price_gte)}'
 
-        if not vol_lte is None and not vol_gte is None:
+
+        if vol_lte is not None and vol_gte is not None:
             # lte and gte are backwards
-            jdict['rules']['wlas.screener.rule.volume'] = 'gte=' + str(vol_lte) + '&lte=' + str(vol_gte)
+            jdict['rules'][
+                'wlas.screener.rule.volume'
+            ] = f'gte={str(vol_lte)}&lte={str(vol_gte)}'
 
-        if not pct_chg_lte is None and not pct_chg_gte is None:
+
+        if pct_chg_lte is not None and pct_chg_gte is not None:
             # lte and gte are backwards
             jdict['rules']['wlas.screener.rule.changeRatio'] = 'gte=' + str(pct_chg_lte) + '&lte=' + str(pct_chg_gte)
 
@@ -726,8 +719,7 @@ class webull:
 
         # jdict = self._ddict2dict(jdict)
         response = requests.post(self._urls.screener(), json=jdict)
-        result = response.json()
-        return result
+        return response.json()
 
     def get_analysis(self, stock=None):
         '''
@@ -760,9 +752,9 @@ class webull:
             extendTrading: change to 1 for pre-market and afterhours bars
             timeStamp: If epoc timestamp is provided, return bar count up to timestamp. If not set default to current time.
         '''
-        if not tId is None:
+        if tId is not None:
             pass
-        elif not stock is None:
+        elif stock is not None:
             tId = self.get_ticker(stock)
         else:
             raise ValueError('Must provide a stock symbol or a stock id')
@@ -798,9 +790,9 @@ class webull:
         :param tId:
         :return: dict of 'market open', 'market close', 'last trade date'
         '''
-        if not tId is None:
+        if tId is not None:
             pass
-        elif not stock is None:
+        elif stock is not None:
             tId = self.get_ticker(stock)
         else:
             raise ValueError('Must provide a stock symbol or a stock id')
@@ -810,7 +802,7 @@ class webull:
         result = response.json()
         time_zone = timezone(result[0]['timeZone'])
         last_trade_date = datetime.fromtimestamp(int(result[0]['data'][0].split(',')[0])).astimezone(time_zone)
-        today = datetime.today().astimezone()  #use no time zone to have it pull in local time zone
+        today = datetime.now().astimezone()
 
         if last_trade_date.date() < today.date():
             # don't know what today's open and close times are, since no trade for today yet
@@ -853,14 +845,14 @@ class webull:
         params = {'regionId': 6, 'userRegionId': 6, 'platform': 'pc', 'limitCards': 'latestActivityPc'}
         response = requests.get(self._urls.rankings(), params=params, headers=headers)
         result = response.json()[0].get('data')
-        if extendTrading:
-            for data in result:
-                if data['id'] == 'latestActivityPc.faList':
-                    rank = data['data']
-        else:
-            for data in result:
-                if data['id'] == 'latestActivityPc.5minutes':
-                    rank = data['data']
+        for data in result:
+            if (
+                extendTrading
+                and data['id'] == 'latestActivityPc.faList'
+                or not extendTrading
+                and data['id'] == 'latestActivityPc.5minutes'
+            ):
+                rank = data['data']
         return rank
 
 
@@ -882,8 +874,7 @@ class paper_webull(webull):
         headers = self.build_req_headers()
         response = requests.get(self._urls.paper_account_id(), headers=headers)
         result = response.json()
-        id = result[0]['id']
-        return id
+        return result[0]['id']
 
     def get_current_orders(self):
         ''' Open paper trading orders '''
@@ -900,9 +891,9 @@ class paper_webull(webull):
 
     def place_order(self, stock=None, tId=None, price=0, action='BUY', orderType='LMT', enforce='GTC', quant=0):
         ''' Place a paper account order. '''
-        if not tId is None:
+        if tId is not None:
             pass
-        elif not stock is None:
+        elif stock is not None:
             tId = self.get_ticker(stock)
         else:
             raise ValueError('Must provide a stock symbol or a stock id')
@@ -942,7 +933,7 @@ class paper_webull(webull):
             'timeInForce': enforce # GTC or DAY
         }
 
-        if quant == 0 or quant == order['totalQuantity']:
+        if quant in [0, order['totalQuantity']]:
             data['quantity'] = order['totalQuantity']
         else:
             data['quantity'] = int(quant)
@@ -951,9 +942,8 @@ class paper_webull(webull):
                                  headers=headers)
         if response:
             return True
-        else:
-            print("Modify didn't succeed. {} {}".format(response, response.json()))
-            return False
+        print("Modify didn't succeed. {} {}".format(response, response.json()))
+        return False
 
     def cancel_order(self, order_id):
         ''' Cancel a paper account order. '''
@@ -968,7 +958,4 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--use-paper', help='Use paper account instead.', action='store_true')
     args = parser.parse_args()
 
-    if args.use_paper:
-        wb = paper_webull()
-    else:
-        wb = webull()
+    wb = paper_webull() if args.use_paper else webull()

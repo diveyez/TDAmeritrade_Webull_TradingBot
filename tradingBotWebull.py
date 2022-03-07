@@ -27,7 +27,7 @@ print("START PROGRAM")
 
 # Program is constantly running
 # CURRENT STRATEGY: start at 4:00am and stop at 7:58pm
-while (1):
+while 1:
 
 	# Print current time just to make sure that the program is running and so I can see where the
 	# stock was either bought or sold
@@ -106,14 +106,14 @@ while (1):
 									# BUY Strategy 1 (Webull)
 									wb.get_trade_token(password=credentials[4])
 									wb.place_order(stock=stock, price=last_price+0.01, action="BUY", orderType="LMT", enforce="GTC", qty=100, outsideRegularTradingHour=True)
-									print("BUY: "+ stock)
+									print(f"BUY: {stock}")
 
 									# Append stock to positions.txt (Webull)
 									with open("positionsWebull.txt", "a") as text_file:
 										text_file.write(stock + "\n")				
 
 							except Exception as e:
-								print(str(e))
+								print(e)
 								continue
 
 				# Else if the alert is a SELL alert for Webull strategy (Strategy 1) and Webull strategy (Strategy 2)
@@ -130,7 +130,7 @@ while (1):
 							# SELL Strategy 1 (Webull)
 							wb.get_trade_token(password=credentials[4])
 							wb.place_order(stock=stock, price=last_price-0.01, action="SELL", orderType="LMT", enforce="GTC", qty=100, outsideRegularTradingHour=True)
-							print("SELL: "+ stock)
+							print(f"SELL: {stock}")
 
 							# Remove stock from positions (Webull)
 							positions.remove(stock)
@@ -145,23 +145,23 @@ while (1):
 			quit()
 
 		except Exception as e:
-			print(str(e))
+			print(e)
 
 			# Sleep program for 10 seconds 
 			t.sleep(5)
 
-			while (1):
+			while 1:
 
 				try:
 					mail = imaplib.IMAP4_SSL("imap.gmail.com")
 					mail.login(credentials[0], credentials[1])
 					break
-					
+
 				except Exception as e:
-					print(str(e))
+					print(e)
 					t.sleep(2)
 					continue
-			
+
 			continue
 
 	# Sleep program for 10 seconds 
